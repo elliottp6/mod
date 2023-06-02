@@ -1,23 +1,36 @@
-#include <linux/init.h>
 #include <linux/module.h>
-#include <linux/uaccess.h>
-#include <linux/fs.h>
 #include <linux/proc_fs.h>
+#include <linux/seq_file.h>
 
-// Module metadata
-MODULE_AUTHOR( "Elliott Prechter" );
-MODULE_DESCRIPTION( "Hello world driver" );
-MODULE_LICENSE( "GPL" );
-
-// Custom init and exit methods
-static int __init custom_init( void ) {
-    printk( KERN_INFO "Hello world loaded.\n" );
+static int hello_proc_show( struct seq_file *m, void *v ) {
+    seq_printf( m, "Hello proc!\n" );
     return 0;
 }
 
-static void __exit custom_exit( void ) {
-    printk( KERN_INFO "Goodbye\n" );
+static int hello_proc_open( struct inode *inode, struct file *file ) {
+    return single_open( file, hello_proc_show, NULL );
 }
 
-module_init( custom_init );
-module_exit( custom_exit );
+static const struct proc_ops hello_proc_fops = {
+    .proc_open = hello_proc_open,
+    .proc_read = seq_read,
+    .proc_lseek = seq_lseek,
+    .proc_release = single_release,
+};
+
+static int __init hello_proc_init( void ) {
+    proc_create( "hello_proc", 0, NULL, &hello_proc_fops );
+    return 0;
+}
+
+static void __exit hello_proc_exit( void ) {
+    remove_proc_entry( "hello_proc", NULL );
+}
+
+// Module metadata
+MODULE_LICENSE( "GPL" );
+MODULE_AUTHOR( "Elliott Prechter" );
+MODULE_DESCRIPTION( "Hello world driver" );
+module_init( hello_proc_init );
+module_exit( hello_proc_exit );
+
